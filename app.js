@@ -12,8 +12,8 @@ const colors = require('colors');
 const url = 'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U';
 const sectionNumber = 06;
 const sectionIndexNumber = '05561';
-const NETID = 'nas256';
-const PASSWORD = 'Meowmix123';
+const NETID = '';
+const PASSWORD = '';
 
 //go to course schedule planner
 puppeteer.launch().then(async browser => {
@@ -68,6 +68,7 @@ function checkAndRegister(html) {
         await registerPage.keyboard.type(sectionIndexNumber);
         await registerPage.click('#submit');
         await registerPage.waitFor(15000);
+        //// TODO: check if course was successfully added, stop script if it was
         await browser.close();
       });
     }
