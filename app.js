@@ -15,7 +15,7 @@ const sectionNumbers = [17, 18, 19];
 const sectionIndexNumbers = ['09452', '09452', '09452'];
 const NETID = 'asef23r';
 const PASSWORD = 'segjklf';
-//const registered = false;
+const delayBetweenChecks = 100;
 
 function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
@@ -26,12 +26,12 @@ function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
 }
 
 function start() {
-  if (!(urls.length === sectionNumbers.length && url.length === sectionIndexNumbers.length)) {
+  if (!(urls.length === sectionNumbers.length && urls.length === sectionIndexNumbers.length)) {
     console.log("incorrect inputs");
     return;
   }
-  for (var i = 0; i < url.length; i++) {
-    var classToRegister = new ClassToRegister(url[i], sectionNumber[i], sectionIndexNumber[i], i);
+  for (var i = 0; i < urls.length; i++) {
+    var classToRegister = new ClassToRegister(urls[i], sectionNumbers[i], sectionIndexNumbers[i], i);
     getScheduleInfo(classToRegister);
   }
 }
@@ -39,6 +39,7 @@ function start() {
 
 //go to course schedule planner
 function getScheduleInfo(class1) {
+
   puppeteer.launch().then(async browser => {
     var schedulePage = await browser.newPage();
     await schedulePage.goto(class1.url, {
@@ -51,11 +52,22 @@ function getScheduleInfo(class1) {
 
     await checkAndRegister(bodyHTML, class1);
     await browser.close();
+
+
+
     if (class1.registered === false) {
 
-      setTimeout(getScheduleInfo(class1), 100);
+      //setTimeout(getScheduleInfo(class1), 100);
+      setTimeout(makeTimeoutFunc(getScheduleInfo(class1)), delayBetweenChecks);
+
     }
-  });
+});
+}
+
+function makeTimeoutFunc(param) {
+    return function() {
+        // does something with param
+    }
 }
 
 function saveToFile(item) {
@@ -73,11 +85,12 @@ function checkAndRegister(html, class1) {
   //iterate through all open classes
   $('.sectionopen', html).each(function() {
     if ($(this).text() == class1.sectionNumber) {
-      console.log("Requested class is open. Attempting to register.".green);
+      console.log("Requested class is open. Attempting to register.  ".green+class1.i);
       foundOpenClass = true;
       //go to webreg and attempt registeration
+      try{
       puppeteer.launch({
-        headless: true
+        headless: false
       }).then(async browser => {
         var registerPage = await browser.newPage();
         await registerPage.goto('https://sims.rutgers.edu/webreg/', {
@@ -89,7 +102,7 @@ function checkAndRegister(html, class1) {
         }, {
           waitUntil: 'networkidle2'
         });
-        try {
+
           await registerPage.waitForNavigation();
           await registerPage.focus('#username');
           await registerPage.keyboard.type(NETID);
@@ -105,14 +118,12 @@ function checkAndRegister(html, class1) {
           await registerPage.waitFor(300);
           await registerPage.click('#submit');
           await registerPage.waitFor(15000);
-        } catch (error) {
-          console.log(error);
-        }
+
         try {
           var text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
           console.log(text);
           if (text === "1 course(s) added successfully.") {
-            console.log("Successfully registered. Shutting down...".green);
+            console.log("Successfully registered. Shutting down...   ".green+class1.i);
             class1.registered = true;
           }
 
@@ -120,12 +131,16 @@ function checkAndRegister(html, class1) {
           try {
             console.log(await registerPage.evaluate(() => document.querySelector('.error').textContent) + " Retrying...".purple);
           } catch (err) {
-            console.log("Course registeration error occured. Retrying...".red);
+            console.log("Course registeration error occured. Retrying...  ".red+class1.i);
           }
-          console.log("Course registeration error occured. Retrying...".red);
+          console.log("Course registeration error occured. Retrying...  ".red+class1.i);
         }
         await browser.close();
       });
+    }
+    catch(error){
+      console.log(error);
+    }
     }
   });
   if (foundOpenClass == false) {
