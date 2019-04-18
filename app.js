@@ -14,7 +14,7 @@ const sectionNumber = [17,18,19];
 const sectionIndexNumber = ['09452','09452','09452'];
 const NETID = 'asef23r';
 const PASSWORD = 'segjklf';
-const registered = false;
+//const registered = false;
 
 function ClassToRegister(url, sectionNumber,sectionIndexNumber,i) {
   this.url = url;
@@ -46,7 +46,7 @@ function getScheduleInfo(class1) {
 
     await checkAndRegister(bodyHTML,class1);
     await browser.close();
-    if (registered === false) {
+    if (class1.registered === false) {
 
       setTimeout(getScheduleInfo(class1), 100);
     }
@@ -109,7 +109,7 @@ catch(error){
           console.log(text);
           if (text === "1 course(s) added successfully.") {
             console.log("Successfully registered. Shutting down...".green);
-            registered = true;
+            class1.registered = true;
           }
 
         } catch (error) {
