@@ -8,28 +8,47 @@ const colors = require('colors');
 3. Input the rest of your information.
 4. Run with node "app.js"
 */
-const url = 'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U';
-const sectionNumber = 17;
-const sectionIndexNumber = '09452';
-const NETID = '';
-const PASSWORD = '';
+const url = ['https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U',
+'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U','https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U'];
+const sectionNumber = [17,18,19];
+const sectionIndexNumber = ['09452','09452','09452'];
+const NETID = 'asef23r';
+const PASSWORD = 'segjklf';
 const registered = false;
 
+function ClassToRegister(url, sectionNumber,sectionIndexNumber,i) {
+  this.url = url;
+  this.sectionNumber=sectionNumber;
+  this.sectionIndexNumber=sectionIndexNumber;
+  this.registered=false;
+  this.i=i;
+}
+
+function start(){
+  for (var i = 0; i < url.length; i++) {
+  var classToRegister=new ClassToRegister(url[i],sectionNumber[i],sectionIndexNumber[i],i);
+  getScheduleInfo(classToRegister);
+}
+}
+
+
 //go to course schedule planner
-function getScheduleInfo() {
+function getScheduleInfo(class1) {
   puppeteer.launch().then(async browser => {
     var schedulePage = await browser.newPage();
-    await schedulePage.goto(url, {
+    await schedulePage.goto(class1.url, {
       waitUntil: 'networkidle2'
     });
 
     let bodyHTML = await schedulePage.evaluate(() => document.body.outerHTML);
     //saveToFile(bodyHTML);
     //above line is for debugging
-    await checkAndRegister(bodyHTML);
+
+    await checkAndRegister(bodyHTML,class1);
     await browser.close();
     if (registered === false) {
-      setTimeout(getScheduleInfo, 100);
+
+      setTimeout(getScheduleInfo(class1), 100);
     }
   });
 }
@@ -44,16 +63,16 @@ function saveToFile(item) {
   });
 }
 
-function checkAndRegister(html) {
+function checkAndRegister(html,class1) {
   var foundOpenClass = false;
   //iterate through all open classes
   $('.sectionopen', html).each(function() {
-    if ($(this).text() == sectionNumber) {
+    if ($(this).text() == class1.sectionNumber) {
       console.log("Requested class is open. Attempting to register.".green);
       foundOpenClass = true;
       //go to webreg and attempt registeration
       puppeteer.launch({
-        headless: false
+        headless: true
       }).then(async browser => {
         var registerPage = await browser.newPage();
         await registerPage.goto('https://sims.rutgers.edu/webreg/', {
@@ -65,6 +84,7 @@ function checkAndRegister(html) {
         }, {
           waitUntil: 'networkidle2'
         });
+        try{
         await registerPage.waitForNavigation();
         await registerPage.focus('#username');
         await registerPage.keyboard.type(NETID);
@@ -76,11 +96,14 @@ function checkAndRegister(html) {
         await registerPage.click('#submit');
         await registerPage.waitForNavigation();
         await registerPage.focus('#i1');
-        await registerPage.keyboard.type(sectionIndexNumber);
+        await registerPage.keyboard.type(class1.sectionIndexNumber);
         await registerPage.waitFor(300);
         await registerPage.click('#submit');
         await registerPage.waitFor(15000);
-
+}
+catch(error){
+  console.log(error);
+}
         try {
           var text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
           console.log(text);
@@ -102,8 +125,8 @@ function checkAndRegister(html) {
     }
   });
   if (foundOpenClass == false) {
-    console.log("Class not open. Retrying...".red);
+    console.log("Class not open. Retrying...   ".red+class1.i);
   }
 }
-
-getScheduleInfo();
+start();
+//getScheduleInfo();
