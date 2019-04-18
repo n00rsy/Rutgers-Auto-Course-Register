@@ -8,27 +8,32 @@ const colors = require('colors');
 3. Input the rest of your information.
 4. Run with node "app.js"
 */
-const url = ['https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U',
-'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U','https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U'];
-const sectionNumber = [17,18,19];
-const sectionIndexNumber = ['09452','09452','09452'];
+const urls = ['https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U',
+  'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U', 'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U'
+];
+const sectionNumbers = [17, 18, 19];
+const sectionIndexNumbers = ['09452', '09452', '09452'];
 const NETID = 'asef23r';
 const PASSWORD = 'segjklf';
 //const registered = false;
 
-function ClassToRegister(url, sectionNumber,sectionIndexNumber,i) {
+function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
-  this.sectionNumber=sectionNumber;
-  this.sectionIndexNumber=sectionIndexNumber;
-  this.registered=false;
-  this.i=i;
+  this.sectionNumber = sectionNumber;
+  this.sectionIndexNumber = sectionIndexNumber;
+  this.registered = false;
+  this.i = i;
 }
 
-function start(){
+function start() {
+  if (!(urls.length === sectionNumbers.length && url.length === sectionIndexNumbers.length)) {
+    console.log("incorrect inputs");
+    return;
+  }
   for (var i = 0; i < url.length; i++) {
-  var classToRegister=new ClassToRegister(url[i],sectionNumber[i],sectionIndexNumber[i],i);
-  getScheduleInfo(classToRegister);
-}
+    var classToRegister = new ClassToRegister(url[i], sectionNumber[i], sectionIndexNumber[i], i);
+    getScheduleInfo(classToRegister);
+  }
 }
 
 
@@ -44,7 +49,7 @@ function getScheduleInfo(class1) {
     //saveToFile(bodyHTML);
     //above line is for debugging
 
-    await checkAndRegister(bodyHTML,class1);
+    await checkAndRegister(bodyHTML, class1);
     await browser.close();
     if (class1.registered === false) {
 
@@ -63,7 +68,7 @@ function saveToFile(item) {
   });
 }
 
-function checkAndRegister(html,class1) {
+function checkAndRegister(html, class1) {
   var foundOpenClass = false;
   //iterate through all open classes
   $('.sectionopen', html).each(function() {
@@ -84,26 +89,25 @@ function checkAndRegister(html,class1) {
         }, {
           waitUntil: 'networkidle2'
         });
-        try{
-        await registerPage.waitForNavigation();
-        await registerPage.focus('#username');
-        await registerPage.keyboard.type(NETID);
-        await registerPage.focus('#password');
-        await registerPage.keyboard.type(PASSWORD);
-        await registerPage.click('#fm1 > fieldset > div:nth-child(7) > input.btn-submit');
-        await registerPage.waitForNavigation();
-        await registerPage.waitFor(300);
-        await registerPage.click('#submit');
-        await registerPage.waitForNavigation();
-        await registerPage.focus('#i1');
-        await registerPage.keyboard.type(class1.sectionIndexNumber);
-        await registerPage.waitFor(300);
-        await registerPage.click('#submit');
-        await registerPage.waitFor(15000);
-}
-catch(error){
-  console.log(error);
-}
+        try {
+          await registerPage.waitForNavigation();
+          await registerPage.focus('#username');
+          await registerPage.keyboard.type(NETID);
+          await registerPage.focus('#password');
+          await registerPage.keyboard.type(PASSWORD);
+          await registerPage.click('#fm1 > fieldset > div:nth-child(7) > input.btn-submit');
+          await registerPage.waitForNavigation();
+          await registerPage.waitFor(300);
+          await registerPage.click('#submit');
+          await registerPage.waitForNavigation();
+          await registerPage.focus('#i1');
+          await registerPage.keyboard.type(class1.sectionIndexNumber);
+          await registerPage.waitFor(300);
+          await registerPage.click('#submit');
+          await registerPage.waitFor(15000);
+        } catch (error) {
+          console.log(error);
+        }
         try {
           var text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
           console.log(text);
@@ -125,7 +129,7 @@ catch(error){
     }
   });
   if (foundOpenClass == false) {
-    console.log("Class not open. Retrying...   ".red+class1.i);
+    console.log("Class not open. Retrying...   ".red + class1.i);
   }
 }
 start();
