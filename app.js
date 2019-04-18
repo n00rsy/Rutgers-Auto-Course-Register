@@ -8,13 +8,13 @@ const colors = require('colors');
 3. Input the rest of your information.
 4. Run with node "app.js"
 */
-const urls = ['https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U',
-  'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U', 'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U'
+const urls = ['https://sis.rutgers.edu/soc/#keyword?keyword=01:750:204&semester=92019&campus=NB&level=U',
+  'https://sis.rutgers.edu/soc/#keyword?keyword=01:198:211&semester=92019&campus=NB&level=U', 'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U'
 ];
-const sectionNumbers = [17, 18, 19];
-const sectionIndexNumbers = ['09452', '09452', '09452'];
-const NETID = 'asef23r';
-const PASSWORD = 'segjklf';
+const sectionNumbers = [15, 18, 19];
+const sectionIndexNumbers = ['19381', '09452', '09452'];
+const NETID = 'nas256';
+const PASSWORD = 'Meowmix123';
 const delayBetweenChecks = 100;
 
 function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
@@ -42,10 +42,14 @@ function getScheduleInfo(class1) {
 
   puppeteer.launch().then(async browser => {
     var schedulePage = await browser.newPage();
+    try{
     await schedulePage.goto(class1.url, {
       waitUntil: 'networkidle2'
     });
-
+}
+catch(error){
+  console.log(error);
+}
     let bodyHTML = await schedulePage.evaluate(() => document.body.outerHTML);
     //saveToFile(bodyHTML);
     //above line is for debugging
@@ -93,9 +97,14 @@ function checkAndRegister(html, class1) {
         headless: false
       }).then(async browser => {
         var registerPage = await browser.newPage();
+        try{
         await registerPage.goto('https://sims.rutgers.edu/webreg/', {
           waitUntil: 'networkidle2'
         });
+      }
+      catch(error){
+        console.log(error);
+      }
         //this sequence starts at webreg landing page and ends at registration.
         await registerPage.evaluate(() => {
           document.querySelectorAll('a')[0].click();
