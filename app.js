@@ -13,8 +13,8 @@ const urls = ['https://sis.rutgers.edu/soc/#keyword?keyword=01:750:204&semester=
 ];
 const sectionNumbers = [15, 18, 19];
 const sectionIndexNumbers = ['19381', '09452', '09452'];
-const NETID = 'nas256';
-const PASSWORD = 'Meowmix123';
+const NETID = '';
+const PASSWORD = '';
 const delayBetweenChecks = 100;
 
 function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
