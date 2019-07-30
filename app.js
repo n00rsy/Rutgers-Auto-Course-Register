@@ -92,7 +92,7 @@ function checkAndRegister(html, course) {
       //go to webreg and attempt registeration
       try {
         puppeteer.launch({
-          headless: false
+          headless: true
         }).then(async browser => {
           var registerPage = await browser.newPage();
           try {
@@ -117,18 +117,20 @@ function checkAndRegister(html, course) {
           console.log(0);
           await registerPage.click('#fm1 > fieldset > div:nth-child(7) > input.btn-submit');
 
+          //choose semester
 
-          await registerPage.waitForNavigation();
+          await registerPage.waitForSelector('#wr > div');
           console.log(1);
-          await registerPage.click('#wr > div');
+
+          await registerPage.click("#wr > div");
           console.log(2);
-          await registerPage.waitFor(4000);
+          await registerPage.waitFor(3000);
           await registerPage.focus('#i1');
           await registerPage.keyboard.type(course.sectionIndexNumber);
           await registerPage.waitFor(300);
           await registerPage.click('#submit');
           await registerPage.waitFor(15000);
-
+          await registerPage.close();
           try {
             var text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
             console.log(text);
