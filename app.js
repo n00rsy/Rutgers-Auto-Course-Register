@@ -8,12 +8,8 @@ const colors = require('colors');
 3. Input the rest of your information.
 4. Run with node "app.js"
 */
-const urls = ['https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20FINANCIAL%20ACCOUNTING&semester=92019&campus=NB&level=U',
-  'https://sis.rutgers.edu/soc/#keyword?keyword=01:198:211&semester=92019&campus=NB&level=U',
-   'https://sis.rutgers.edu/soc/#keyword?keyword=INTRODUCTION%20TO%20CREATIVE%20WRITING&semester=12019&campus=NB&level=U'
-];
-const sectionNumbers = [05, 18, 19];
-const sectionIndexNumbers = ['11699', '09452', '09452'];
+const sectionNumbers = [90, 18, 19];
+const sectionIndexNumbers = ['10377', '09452', '09452'];
 const NETID = '';
 const PASSWORD = '';
 const delayBetweenChecks = 10;
@@ -26,46 +22,45 @@ function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
   this.i = i;
 }
 
+function generateURL(sectionIndexNumber){
+  return "https://sis.rutgers.edu/soc/#keyword?keyword="+sectionIndexNumber+"&semester=92019&campus=NB&level=U";
+}
+
 function start() {
-  if (!(urls.length === sectionNumbers.length && urls.length === sectionIndexNumbers.length)) {
+  if (sectionNumbers.length != sectionIndexNumbers.length) {
     console.log("incorrect inputs");
     return;
   }
-  for (var i = 0; i < urls.length; i++) {
-    var classToRegister = new ClassToRegister(urls[i], sectionNumbers[i], sectionIndexNumbers[i], i);
+  for (var i = 0; i < sectionNumbers.length; i++) {
+    var classToRegister = new ClassToRegister(generateURL(sectionIndexNumbers[i]), sectionNumbers[i], sectionIndexNumbers[i], i);
     getScheduleInfo(classToRegister);
   }
 }
 
 
 //go to course schedule planner
-async function getScheduleInfo(class1) {
+async function getScheduleInfo(course) {
 
   puppeteer.launch().then(async browser => {
     var schedulePage = await browser.newPage();
     try {
-      await schedulePage.goto(class1.url, {
+      await schedulePage.goto(course.url, {
         waitUntil: 'networkidle2'
       });
     } catch (error) {
       console.log(error);
     }
     let bodyHTML = await schedulePage.evaluate(() => document.body.outerHTML);
-    //saveToFile(bodyHTML);
-    //above line is for debugging
     await browser.close();
     /*
-    await checkAndRegister(bodyHTML, class1);
-
-
-    if (class1.registered === false) {
-      //setTimeout(getScheduleInfo(class1), 100);
-      await setTimeout(makeTimeoutFunc(getScheduleInfo(class1)), delayBetweenChecks);
-
+    await checkAndRegister(bodyHTML, course);
+    if (course.registered === false) {
+      //setTimeout(getScheduleInfo(course), 100);
+      await setTimeout(makeTimeoutFunc(getScheduleInfo(course)), delayBetweenChecks);
     }
     */
-    if(await checkAndRegister(bodyHTML, class1)===false){
-      await setTimeout(makeTimeoutFunc(getScheduleInfo(class1)), delayBetweenChecks);
+    if(checkAndRegister(bodyHTML, course)===false){
+      await setTimeout(makeTimeoutFunc(getScheduleInfo(course)), delayBetweenChecks);
     }
   });
 }
@@ -86,13 +81,14 @@ function saveToFile(item) {
   });
 }
 
-function checkAndRegister(html, class1) {
+function checkAndRegister(html, course) {
   var foundOpenClass = false;
   //iterate through all open classes
   $('.sectionopen', html).each(function() {
-    if ($(this).text() == class1.sectionNumber) {
-      console.log("Requested class is open. Attempting to register.  ".green + class1.i);
+    if ($(this).text() == course.sectionNumber) {
+      console.log("Requested class is open. Attempting to register.  ".green + course.i);
       foundOpenClass = true;
+
       //go to webreg and attempt registeration
       try {
         puppeteer.launch({
@@ -118,13 +114,17 @@ function checkAndRegister(html, class1) {
           await registerPage.keyboard.type(NETID);
           await registerPage.focus('#password');
           await registerPage.keyboard.type(PASSWORD);
+          console.log(0);
           await registerPage.click('#fm1 > fieldset > div:nth-child(7) > input.btn-submit');
+
+
           await registerPage.waitForNavigation();
-          await registerPage.waitFor(300);
-          await registerPage.click('#submit');
-          await registerPage.waitForNavigation();
+          console.log(1);
+          await registerPage.click('#wr > div');
+          console.log(2);
+          await registerPage.waitFor(4000);
           await registerPage.focus('#i1');
-          await registerPage.keyboard.type(class1.sectionIndexNumber);
+          await registerPage.keyboard.type(course.sectionIndexNumber);
           await registerPage.waitFor(300);
           await registerPage.click('#submit');
           await registerPage.waitFor(15000);
@@ -133,8 +133,8 @@ function checkAndRegister(html, class1) {
             var text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
             console.log(text);
             if (text === "1 course(s) added successfully.") {
-              console.log("Successfully registered. Shutting down...   ".green + class1.i);
-              class1.registered = true;
+              console.log("Successfully registered. Shutting down...   ".green + course.i);
+              course.registered = true;
               return true;
             }
 
@@ -142,10 +142,10 @@ function checkAndRegister(html, class1) {
             try {
               console.log(await registerPage.evaluate(() => document.querySelector('.error').textContent) + " Retrying...".purple);
             } catch (err) {
-              console.log("Course registeration error occured. Retrying...  ".red + class1.i);
+              console.log("Course registeration error occured. Retrying...  ".red + course.i);
               return false;
             }
-            console.log("Course registeration error occured. Retrying...  ".red + class1.i);
+            console.log("Course registeration error occured. Retrying...  ".red + course.i);
             return false;
           }
           await browser.close();
@@ -157,9 +157,8 @@ function checkAndRegister(html, class1) {
     }
   });
   if (foundOpenClass === false) {
-    console.log("Class not open. Retrying...   ".red + class1.i);
+    console.log(NETID+"'s"+" Class "+ course.i+" not open. Retrying...   ".red + " "+ new Date(Date.now()).toLocaleString());
     return false;
   }
 }
 start();
-//getScheduleInfo();
