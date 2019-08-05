@@ -10,8 +10,8 @@ const colors = require('colors');
 */
 const sectionNumbers = [90, 18, 19];
 const sectionIndexNumbers = ['10377', '09452', '09452'];
-const NETID = 'nas256';
-const PASSWORD = 'Meowmix123';
+const NETID = '';
+const PASSWORD = '';
 const delayBetweenChecks = 10;
 
 const schedulePage = null;
