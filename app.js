@@ -68,7 +68,8 @@ var bodyHTML = null;
           console.log(e);
         }
         await sleep(delayBetweenChecks);
-      } while (checkAndRegister(bodyHTML, course) === false);
+        var status = await checkAndRegister(bodyHTML, course);
+      } while (status == false);
 
       await browser.close();
 
@@ -100,8 +101,11 @@ function saveToFile(item) {
 }
 
 function checkAndRegister(html, course) {
+
+
+  var gotClass = false;
   if (html === null) {
-    return false;
+    return gotClass;
   }
 
   //iterate through all open classes
@@ -111,7 +115,7 @@ function checkAndRegister(html, course) {
       //go to webreg and attempt registeration
       try {
         puppeteer.launch({
-          headless: false
+          headless: true
         }).then(async browser => {
           var registerPage = await browser.newPage();
 
@@ -161,17 +165,17 @@ function checkAndRegister(html, course) {
           }
           console.log(text);
 
-          if (text === "1 course(s) added successfully." || text.includes("You are already registered for course ")) {
+          if (text.includes("success") || text.includes("You are already registered for course ")) {
             console.log(("Successfully registered for " + course.sectionIndexNumber + ". Shutting down...   " + new Date(Date.now()).toLocaleString()).green);
             await registerPage.close();
+            gotClass=true;
             await browser.close();
-            return true;
+
           }
           else{
             console.log(("Registeration error occurred for " + course.sectionIndexNumber + ". Retrying...   " + new Date(Date.now()).toLocaleString()).blue);
             await registerPage.close();
             await browser.close();
-            return false;
           }
         });
       } catch (error) {
@@ -180,6 +184,6 @@ function checkAndRegister(html, course) {
     }
   });
   console.log((NETID + " " + course.sectionIndexNumber + " not open. Retrying...   " + " ").red + new Date(Date.now()).toLocaleString());
-  return false;
+  return gotClass;
 }
 start();
