@@ -8,8 +8,8 @@ const colors = require('colors');
 3. Input the rest of your information.
 4. Run with node "app.js"
 */
-const sectionNumbers = [90, 18, 19];
-const sectionIndexNumbers = ['10377', '09452', '09452'];
+const sectionNumbers = [ 19];
+const sectionIndexNumbers = [ '12298'];
 const NETID = '';
 const PASSWORD = '';
 const delayBetweenChecks = 2000; //milliseconds
@@ -19,7 +19,6 @@ function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
   this.sectionNumber = sectionNumber;
   this.sectionIndexNumber = sectionIndexNumber;
-  this.registered = false;
   this.i = i;
 }
 
@@ -43,16 +42,26 @@ function start() {
 function getScheduleInfo(course) {
 
   try {
-    puppeteer.launch().then(async browser => {
+    puppeteer.launch({
+      headless: false
+    }).then(async browser => {
+
+var bodyHTML = null;
 
       var schedulePage = await browser.newPage();
-      var bodyHTML = null;
+
 
       do {
         try {
+
+          if(bodyHTML==null){
           await schedulePage.goto(course.url, {
             waitUntil: 'networkidle2'
           });
+        }
+        else{
+          await schedulePage.reload();
+        }
 
           bodyHTML = await schedulePage.evaluate(() => document.body.outerHTML);
         } catch (e) {
@@ -137,7 +146,7 @@ function checkAndRegister(html, course) {
           await registerPage.keyboard.type(course.sectionIndexNumber);
           await registerPage.waitFor(300);
           await registerPage.click('#submit');
-          await registerPage.waitFor(10000);
+          await registerPage.waitFor(30000);
 
           var text = null;
           try {
@@ -147,28 +156,30 @@ function checkAndRegister(html, course) {
               text = await registerPage.evaluate(() => document.querySelector('.error').textContent);
             } catch (e) {
               console.log(e);
-              console.log("idk what happened really. No info text found");
+              console.log("Class already closed or page timed out.");
             }
           }
           console.log(text);
 
           if (text === "1 course(s) added successfully." || text.includes("You are already registered for course ")) {
             console.log(("Successfully registered for " + course.sectionIndexNumber + ". Shutting down...   " + new Date(Date.now()).toLocaleString()).green);
-            course.registered = true;
+            await registerPage.close();
+            await browser.close();
             return true;
           }
-          await registerPage.close();
-          await browser.close();
+          else{
+            console.log(("Registeration error occurred for " + course.sectionIndexNumber + ". Retrying...   " + new Date(Date.now()).toLocaleString()).blue);
+            await registerPage.close();
+            await browser.close();
+            return false;
+          }
         });
       } catch (error) {
         console.log(error);
       }
-
     }
-
   });
   console.log((NETID + " " + course.sectionIndexNumber + " not open. Retrying...   " + " ").red + new Date(Date.now()).toLocaleString());
   return false;
-
 }
 start();
