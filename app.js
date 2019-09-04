@@ -8,10 +8,10 @@ const colors = require('colors');
 3. Input the rest of your information.
 4. Run with node "app.js"
 */
-const sectionNumbers = [ 19];
-const sectionIndexNumbers = [ '12298'];
-const NETID = '';
-const PASSWORD = '';
+const sectionNumbers = [91];
+const sectionIndexNumbers = ['08396'];
+const NETID = 'nas256';
+const PASSWORD = 'Meowmix1234';
 const delayBetweenChecks = 2000; //milliseconds
 
 
@@ -20,6 +20,7 @@ function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
   this.sectionNumber = sectionNumber;
   this.sectionIndexNumber = sectionIndexNumber;
   this.i = i;
+  this.html = null;
 }
 
 function generateURL(sectionIndexNumber) {
@@ -45,35 +46,32 @@ function getScheduleInfo(course) {
     puppeteer.launch({
       headless: false
     }).then(async browser => {
-
-var bodyHTML = null;
-
       var schedulePage = await browser.newPage();
-
 
       do {
         try {
 
-          if(bodyHTML==null){
-          await schedulePage.goto(course.url, {
-            waitUntil: 'networkidle2'
-          });
-        }
-        else{
-          await schedulePage.reload();
-        }
+          if (course.html == null) {
+            await schedulePage.goto(course.url, {
+              waitUntil: 'networkidle2'
+            });
+          } else {
+            await schedulePage.reload({
+              waitUntil: 'networkidle2'
+            });
 
-          bodyHTML = await schedulePage.evaluate(() => document.body.outerHTML);
+          }
+
+          course.html = await schedulePage.evaluate(() => document.body.outerHTML);
+
         } catch (e) {
           console.log(e);
         }
         await sleep(delayBetweenChecks);
-        var status = await checkAndRegister(bodyHTML, course);
+        var status = await checkAndRegister(course);
       } while (status == false);
 
       await browser.close();
-
-
     });
   } catch (e) {
     console.log(e);
@@ -100,22 +98,23 @@ function saveToFile(item) {
   });
 }
 
-function checkAndRegister(html, course) {
+async function checkAndRegister(course) {
 
 
   var gotClass = false;
-  if (html === null) {
+  if (course.html === null) {
     return gotClass;
   }
 
   //iterate through all open classes
-  $('.sectionopen', html).each(function() {
+  $('.sectionopen', course.html).each(function() {
+    console.log($(this).text());
     if ($(this).text() == course.sectionNumber) {
       console.log(course.sectionIndexNumber + " is open. Attempting to register.  ".green);
       //go to webreg and attempt registeration
       try {
         puppeteer.launch({
-          headless: true
+          headless: false
         }).then(async browser => {
           var registerPage = await browser.newPage();
 
@@ -150,40 +149,33 @@ function checkAndRegister(html, course) {
           await registerPage.keyboard.type(course.sectionIndexNumber);
           await registerPage.waitFor(300);
           await registerPage.click('#submit');
-          await registerPage.waitFor(30000);
+          await registerPage.waitFor(15000);
+
 
           var text = null;
-          try {
-            text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
-          } catch (e) {
-            try {
-              text = await registerPage.evaluate(() => document.querySelector('.error').textContent);
-            } catch (e) {
-              console.log(e);
-              console.log("Class already closed or page timed out.");
-            }
-          }
+          try{
+          text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
           console.log(text);
+          gotClass=true;
+          process.exit(0);
+        }
+        catch(e){
+          console.log(await registerPage.evaluate(() => document.querySelector('.error').textContent));
+        }
 
-          if (text.includes("success") || text.includes("You are already registered for course ")) {
-            console.log(("Successfully registered for " + course.sectionIndexNumber + ". Shutting down...   " + new Date(Date.now()).toLocaleString()).green);
-            await registerPage.close();
-            gotClass=true;
-            await browser.close();
+        await registerPage.close();
+        await browser.close();
 
-          }
-          else{
-            console.log(("Registeration error occurred for " + course.sectionIndexNumber + ". Retrying...   " + new Date(Date.now()).toLocaleString()).blue);
-            await registerPage.close();
-            await browser.close();
-          }
         });
       } catch (error) {
         console.log(error);
       }
     }
   });
+
+  if(!gotClass){
   console.log((NETID + " " + course.sectionIndexNumber + " not open. Retrying...   " + " ").red + new Date(Date.now()).toLocaleString());
+}
   return gotClass;
 }
 start();
