@@ -8,18 +8,17 @@ const colors = require('colors');
     CREATED BY YA BOI NOORSY
 --- LAST UPDATED FOR FALL 2020 ---
     it aint pretty but it works
-USAGE
-1. Go to https://sis.rutgers.edu/soc/#home and search for your class.
-2. Put that link in url variable
-3. Input the rest of your information.
-4. Run with node "app.js"
-*/
-const sectionNumbers = [92];
-const sectionIndexNumbers = ['08310'];
-const NETID = 'nas256';
-const PASSWORD = 'Meowmix1234';
-const delayBetweenChecks = 2000; //milliseconds
 
+USAGE
+1. Install dependencies: puppeteer, cheerio, colors
+2. Input your information below
+3. Run with "node app.js"
+*/
+const sectionNumbers = [92,06,07];
+const sectionIndexNumbers = ['08310','04708','04709'];
+const NETID = 'YOUR NETID HERE';
+const PASSWORD = 'YOUR PASSWORD HERE';
+const delayBetweenChecks = 2000; //milliseconds
 
 function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
@@ -45,8 +44,6 @@ function start() {
 }
 //go to course schedule planner
 async function getScheduleInfo(course) {
-
-
   puppeteer.launch({
     headless: false
   }).then(async browser => {
@@ -78,17 +75,9 @@ async function getScheduleInfo(course) {
   });
 
 }
-
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-function makeTimeoutFunc(param) {
-  return function () {
-    // does something with param
-  }
-}
-
 function saveToFile(item) {
   const fs = require('fs');
   fs.writeFile("debug.html", item, function (err) {
@@ -98,7 +87,6 @@ function saveToFile(item) {
     console.log("The file was saved!");
   });
 }
-
 async function checkAndRegister(course) {
   return  new Promise(function(resolve) {
 
@@ -106,7 +94,6 @@ async function checkAndRegister(course) {
   if (course.html === null) {
     return gotClass;
   }
-
   //iterate through all open classes
   $('.sectionopen', course.html).each(function () {
     console.log($(this).text());
@@ -172,7 +159,6 @@ async function checkAndRegister(course) {
           resolve(gotClass)
         });
     }
-
   });
   console.log((NETID + " " + course.sectionIndexNumber + " not open. Retrying...   " + " ").red + new Date(Date.now()).toLocaleString());
   resolve(false)
