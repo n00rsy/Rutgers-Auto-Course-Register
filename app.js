@@ -14,10 +14,10 @@ USAGE
 2. Input your information below
 3. Run with "node app.js"
 */
-const sectionNumbers = [92,06,07];
-const sectionIndexNumbers = ['08310','04708','04709'];
-const NETID = 'YOUR NETID HERE';
-const PASSWORD = 'YOUR PASSWORD HERE';
+const sectionNumbers = [92,06,07,01];
+const sectionIndexNumbers = ['08310','04708','04709','15426'];
+const NETID = '';
+const PASSWORD = '';
 const delayBetweenChecks = 2000; //milliseconds
 
 function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
@@ -26,6 +26,7 @@ function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
   this.sectionIndexNumber = sectionIndexNumber;
   this.i = i;
   this.html = null;
+  this.count = 0;
 }
 
 function generateURL(sectionIndexNumber) {
@@ -45,7 +46,7 @@ function start() {
 //go to course schedule planner
 async function getScheduleInfo(course) {
   puppeteer.launch({
-    headless: false
+    headless: true
   }).then(async browser => {
     var schedulePage = await browser.newPage();
 
@@ -101,7 +102,7 @@ async function checkAndRegister(course) {
       console.log(course.sectionIndexNumber + " is open. Attempting to register.  ".green);
       //go to webreg and attempt registeration
         puppeteer.launch({
-          headless: false
+          headless: true
         }).then(async browser => {
           var registerPage = await browser.newPage();
 
@@ -140,27 +141,31 @@ async function checkAndRegister(course) {
           await registerPage.waitFor(300);
           await registerPage.click('#submit');
           await registerPage.waitFor(15000);
-
-          var text = null;
-          try {
-            text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
-            console.log(text.green);
-            gotClass = true;
+          course.count++;
+          if(course.count>10) {
+            resolve(true)
           }
-          catch (e) {
-            console.log(await registerPage.evaluate(() => document.querySelector('.error').textContent));
-          }
-
+          else{
+            var text = null;
+            try {
+              text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
+              console.log(text.green);
+              resolve(true)
+            }
+            catch (e) {
+              console.log(await registerPage.evaluate(() => document.querySelector('.error').textContent));
+            }
+        }
           await registerPage.close();
           await browser.close();
           if (!gotClass) {
-            console.log((NETID + " " + course.sectionIndexNumber + " not open. Retrying...   " + " ").red + new Date(Date.now()).toLocaleString());
+            console.log((NETID + " " + course.sectionIndexNumber + " not open. " + " ").red + new Date(Date.now()).toLocaleString());
           }
-          resolve(gotClass)
+          resolve(false)
         });
     }
   });
-  console.log((NETID + " " + course.sectionIndexNumber + " not open. Retrying...   " + " ").red + new Date(Date.now()).toLocaleString());
+  console.log((NETID + " " + course.sectionIndexNumber + " not open. " + " ").red + new Date(Date.now()).toLocaleString());
   resolve(false)
 })
 }
