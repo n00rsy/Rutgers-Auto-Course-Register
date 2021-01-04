@@ -5,8 +5,7 @@ const $ = require('cheerio');
 const colors = require('colors');
 
 /*
-    CREATED BY YA BOI NOORSY
---- LAST UPDATED FOR FALL 2020 ---
+--- LAST UPDATED FOR SPRING 2021 ---
     it aint pretty but it works
 
 USAGE
@@ -14,13 +13,13 @@ USAGE
 2. Input your information below
 3. Run with "node app.js"
 */
-const sectionNumbers = [92,06,07,01];
-const sectionIndexNumbers = ['08310','04708','04709','15426'];
+const sectionNumbers = [90];
+const sectionIndexNumbers = ['11868'];
 const NETID = '';
 const PASSWORD = '';
 const delayBetweenChecks = 2000; //milliseconds
 
-function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
+function Course(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
   this.sectionNumber = sectionNumber;
   this.sectionIndexNumber = sectionIndexNumber;
@@ -30,7 +29,7 @@ function ClassToRegister(url, sectionNumber, sectionIndexNumber, i) {
 }
 
 function generateURL(sectionIndexNumber) {
-  return "https://sis.rutgers.edu/soc/#keyword?keyword=" + sectionIndexNumber + "&semester=92020&campus=NB&level=U";
+  return "https://sis.rutgers.edu/soc/#keyword?keyword=" + sectionIndexNumber + "&semester=12021&campus=NB&level=U";
 }
 
 function start() {
@@ -38,40 +37,35 @@ function start() {
     console.log("incorrect inputs");
     return;
   }
-  for (var i = 0; i < sectionNumbers.length; i++) {
-    var classToRegister = new ClassToRegister(generateURL(sectionIndexNumbers[i]), sectionNumbers[i], sectionIndexNumbers[i], i);
-    getScheduleInfo(classToRegister);
+  for (let i = 0; i < sectionNumbers.length; i++) {
+    snipe(new Course(generateURL(sectionIndexNumbers[i]), sectionNumbers[i], sectionIndexNumbers[i], i))
   }
 }
 //go to course schedule planner
-async function getScheduleInfo(course) {
+async function snipe(course) {
   puppeteer.launch({
-    headless: true
+    headless: false
   }).then(async browser => {
-    var schedulePage = await browser.newPage();
-
+    let schedulePage = await browser.newPage();
+    let status = false
     do {
-      
-      try {
-        if (course.html == null) {
-          await schedulePage.goto(course.url, {
-            waitUntil: 'networkidle2'
-          });
-        } else {
-          await schedulePage.reload({
-            waitUntil: 'networkidle2'
-          });
 
-        }
-      } catch (e) {
-        console.log(e);
-        continue;
+      if (course.html == null) {
+        await schedulePage.goto(course.url, {
+          waitUntil: 'networkidle2'
+        });
       }
+      else {
+        await schedulePage.reload({
+          waitUntil: 'networkidle2'
+        });
+      }
+
       course.html = await schedulePage.evaluate(() => document.body.outerHTML);
-      var status = await checkAndRegister(course);
+      status = await checkAndRegister(course);
       await sleep(delayBetweenChecks);
     } while (status == false);
-
+    console.log("stopping registration for course " + course.sectionIndexNumber)
     await browser.close();
   });
 
@@ -79,95 +73,95 @@ async function getScheduleInfo(course) {
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-function saveToFile(item) {
-  const fs = require('fs');
-  fs.writeFile("debug.html", item, function (err) {
-    if (err) {
-      return console.log(err);
-    }
-    console.log("The file was saved!");
-  });
-}
-async function checkAndRegister(course) {
-  return  new Promise(function(resolve) {
 
-  var gotClass = false;
+async function checkAndRegister(course) {
+
   if (course.html === null) {
-    return gotClass;
+    return false
   }
+  let courseOpen = false
   //iterate through all open classes
   $('.sectionopen', course.html).each(function () {
     console.log($(this).text());
     if ($(this).text() == course.sectionNumber) {
       console.log(course.sectionIndexNumber + " is open. Attempting to register.  ".green);
-      //go to webreg and attempt registeration
-        puppeteer.launch({
-          headless: true
-        }).then(async browser => {
-          var registerPage = await browser.newPage();
-
-          await registerPage.goto('https://sims.rutgers.edu/webreg/', {
-            waitUntil: 'networkidle2'
-          });
-          //this sequence starts at webreg landing page and ends at registration.
-          await registerPage.evaluate(() => {
-            document.querySelectorAll('a')[0].click();
-          }, {
-            waitUntil: 'networkidle2'
-          });
-
-          await registerPage.waitForNavigation();
-          await registerPage.focus('#username');
-          await registerPage.keyboard.type(NETID);
-          await registerPage.focus('#password');
-          await registerPage.keyboard.type(PASSWORD);
-          //console.log(0);
-          await registerPage.click('#fm1 > fieldset > div:nth-child(6) > input.btn-submit');
-
-          //choose semester
-          try {
-            await registerPage.waitForSelector('#wr > div');
-            await registerPage.click("#wr > div");
-          } catch (e) {
-            console.log("Failed to log in. netid/ password is incorrect.".red);
-            await registerPage.close();
-            await browser.close();
-            resolve(false)
-          }
-
-          await registerPage.waitForSelector('#i1');
-          await registerPage.focus('#i1');
-          await registerPage.keyboard.type(course.sectionIndexNumber);
-          await registerPage.waitFor(300);
-          await registerPage.click('#submit');
-          await registerPage.waitFor(15000);
-          course.count++;
-          if(course.count>10) {
-            resolve(true)
-          }
-          else{
-            var text = null;
-            try {
-              text = await registerPage.evaluate(() => document.querySelector('.ok').textContent);
-              console.log(text.green);
-              resolve(true)
-            }
-            catch (e) {
-              console.log(await registerPage.evaluate(() => document.querySelector('.error').textContent));
-            }
-        }
-          await registerPage.close();
-          await browser.close();
-          if (!gotClass) {
-            console.log((NETID + " " + course.sectionIndexNumber + " not open. " + " ").red + new Date(Date.now()).toLocaleString());
-          }
-          resolve(false)
-        });
+      courseOpen = true
     }
   });
+  if (courseOpen)
+    //go to webreg and attempt registeration
+    return puppeteer.launch({
+      headless: false
+    }).then(async browser => {
+      let registerPage = await browser.newPage();
+
+      await registerPage.goto('https://sims.rutgers.edu/webreg/', {
+        waitUntil: 'networkidle2'
+      });
+      //this sequence starts at webreg landing page and ends at registration.
+      await registerPage.evaluate(() => {
+        document.querySelectorAll('a')[0].click();
+      }, {
+        waitUntil: 'networkidle2'
+      });
+
+      await registerPage.waitForNavigation();
+      await registerPage.focus('#username');
+      await registerPage.keyboard.type(NETID);
+      await registerPage.focus('#password');
+      await registerPage.keyboard.type(PASSWORD);
+      //console.log(0);
+      await registerPage.click('#fm1 > fieldset > div:nth-child(6) > input.btn-submit');
+
+      //choose semester
+      try {
+        await registerPage.waitForSelector('#wr > div');
+        await registerPage.click("#wr > div");
+      } catch (e) {
+        console.log("Failed to log in. netid/ password is incorrect.".red);
+        await registerPage.close();
+        await browser.close();
+        return false
+      }
+
+      await registerPage.waitForSelector('#i1');
+      await registerPage.focus('#i1');
+      await registerPage.keyboard.type(course.sectionIndexNumber);
+      await registerPage.waitForTimeout(300);
+      await registerPage.waitForSelector('#submit');
+      await registerPage.click('#submit');
+      await registerPage.waitForTimeout(15000);
+      course.count++;
+      if (course.count > 10) {
+        return false
+      }
+      else {
+        let res = await registerPage.evaluate(() => {
+          let ok = document.querySelector('.ok')
+          let error = document.querySelector('.error')
+          if (ok != null) return { text: ok.textContent, registered: true }
+          if (error != null) {
+            let errorText = error.textContent
+            if (errorText.includes("already registered")) return { text: errorText, registered: true }
+            return { text: errorText, registered: false }
+          }
+          return { text: "unknown error bruh", registered: true }
+        })
+        await registerPage.close();
+        await browser.close();
+        if (res.registered) {
+          console.log(res.text.green)
+          return true
+        }
+        else {
+          console.log(res.text.red)
+          return false
+        }
+      }
+    });
   console.log((NETID + " " + course.sectionIndexNumber + " not open. " + " ").red + new Date(Date.now()).toLocaleString());
-  resolve(false)
-})
+  return false
 }
+
 
 start();
