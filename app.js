@@ -46,8 +46,7 @@ async function snipe(course) {
   puppeteer.launch({
     headless: false
   }).then(async browser => {
-    let schedulePage = await browser.newPage();
-    let status = false
+    let schedulePage = await browser.newPage(), status = false
     do {
 
       if (course.html == null) {
@@ -110,11 +109,11 @@ async function checkAndRegister(course) {
       await registerPage.keyboard.type(NETID);
       await registerPage.focus('#password');
       await registerPage.keyboard.type(PASSWORD);
-      //console.log(0);
       await registerPage.click('#fm1 > fieldset > div:nth-child(6) > input.btn-submit');
 
       //choose semester
       try {
+        course.count++;
         await registerPage.waitForSelector('#wr > div');
         await registerPage.click("#wr > div");
       } catch (e) {
@@ -131,7 +130,6 @@ async function checkAndRegister(course) {
       await registerPage.waitForSelector('#submit');
       await registerPage.click('#submit');
       await registerPage.waitForTimeout(15000);
-      course.count++;
       if (course.count > 10) {
         return false
       }
