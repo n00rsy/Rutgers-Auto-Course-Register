@@ -18,12 +18,12 @@ const sectionIndexNumbers = ['11868'];
 const NETID = '';
 const PASSWORD = '';
 const delayBetweenChecks = 2000; //milliseconds
+const headless = true
 
 function Course(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
   this.sectionNumber = sectionNumber;
   this.sectionIndexNumber = sectionIndexNumber;
-  this.i = i;
   this.html = null;
   this.count = 0;
 }
@@ -38,17 +38,17 @@ function start() {
     return;
   }
   for (let i = 0; i < sectionNumbers.length; i++) {
-    snipe(new Course(generateURL(sectionIndexNumbers[i]), sectionNumbers[i], sectionIndexNumbers[i], i))
+    snipe(new Course(generateURL(sectionIndexNumbers[i]), sectionNumbers[i], sectionIndexNumbers[i]))
   }
 }
 //go to course schedule planner
 async function snipe(course) {
   puppeteer.launch({
-    headless: false
+    headless: headless
   }).then(async browser => {
     let schedulePage = await browser.newPage(), status = false
     do {
-
+      try {
       if (course.html == null) {
         await schedulePage.goto(course.url, {
           waitUntil: 'networkidle2'
@@ -59,7 +59,11 @@ async function snipe(course) {
           waitUntil: 'networkidle2'
         });
       }
-
+    }
+    catch(e) {
+      console.log(e)
+      continue
+    }
       course.html = await schedulePage.evaluate(() => document.body.outerHTML);
       status = await checkAndRegister(course);
       await sleep(delayBetweenChecks);
@@ -81,16 +85,16 @@ async function checkAndRegister(course) {
   let courseOpen = false
   //iterate through all open classes
   $('.sectionopen', course.html).each(function () {
-    console.log($(this).text());
+    console.log("YEEEE", $(this).text());
     if ($(this).text() == course.sectionNumber) {
       console.log(course.sectionIndexNumber + " is open. Attempting to register.  ".green);
-      courseOpen = true
+      //courseOpen = true
     }
   });
   if (courseOpen)
     //go to webreg and attempt registeration
     return puppeteer.launch({
-      headless: false
+      headless: headless
     }).then(async browser => {
       let registerPage = await browser.newPage();
 
