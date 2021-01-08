@@ -47,23 +47,25 @@ async function snipe(course) {
     headless: headless
   }).then(async browser => {
     let schedulePage = await browser.newPage(), status = false
+    await schedulePage.setDefaultNavigationTimeout(0);
     do {
       try {
-      if (course.html == null) {
-        await schedulePage.goto(course.url, {
-          waitUntil: 'networkidle2'
-        });
+        if (course.html == null) {
+          await schedulePage.goto(course.url, {
+            waitUntil: 'networkidle2'
+          }).catch((e) => e)
+        }
+        else {
+          await schedulePage.reload({
+            waitUntil: 'networkidle2'
+          }).catch((e) => e)
+        }
       }
-      else {
-        await schedulePage.reload({
-          waitUntil: 'networkidle2'
-        });
+      catch (e) {
+        console.log(e)
+        continue
       }
-    }
-    catch(e) {
-      console.log(e)
-      continue
-    }
+      await schedulePage.waitForNavigation()
       course.html = await schedulePage.evaluate(() => document.body.outerHTML);
       status = await checkAndRegister(course);
       await sleep(delayBetweenChecks);
