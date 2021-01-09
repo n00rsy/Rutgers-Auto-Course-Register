@@ -13,12 +13,12 @@ USAGE
 2. Input your information below
 3. Run with "node app.js"
 */
-const sectionNumbers = [90];
-const sectionIndexNumbers = ['11868'];
+const sectionNumbers = [''];
+const sectionIndexNumbers = [''];
 const NETID = '';
 const PASSWORD = '';
 const delayBetweenChecks = 2000; //milliseconds
-const headless = true
+const headless = false
 
 function Course(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
@@ -47,7 +47,6 @@ async function snipe(course) {
     headless: headless
   }).then(async browser => {
     let schedulePage = await browser.newPage(), status = false
-    await schedulePage.setDefaultNavigationTimeout(0);
     do {
       try {
         if (course.html == null) {
@@ -66,8 +65,11 @@ async function snipe(course) {
         continue
       }
       await schedulePage.waitForNavigation()
-      course.html = await schedulePage.evaluate(() => document.body.outerHTML);
-      status = await checkAndRegister(course);
+      course.html = await schedulePage.evaluate(() => {
+        if(document.body) return document.body.outerHTML
+        else return undefined
+      });
+      if(course.html) status = await checkAndRegister(course);
       await sleep(delayBetweenChecks);
     } while (status == false);
     console.log("stopping registration for course " + course.sectionIndexNumber)
