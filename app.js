@@ -13,10 +13,10 @@ USAGE
 2. Input your information below
 3. Run with "node app.js"
 */
-const sectionNumbers = [''];
-const sectionIndexNumbers = [''];
-const NETID = '';
-const PASSWORD = '';
+const sectionNumbers = ['02'];
+const sectionIndexNumbers = ['08539'];
+const NETID = 'nas256';
+const PASSWORD = 'Meowmix1234';
 const delayBetweenChecks = 2000; //milliseconds
 const headless = false
 
@@ -48,29 +48,33 @@ async function snipe(course) {
   }).then(async browser => {
     let schedulePage = await browser.newPage(), status = false
     do {
-      try {
-        if (course.html == null) {
-          await schedulePage.goto(course.url, {
-            waitUntil: 'networkidle2'
-          }).catch((e) => e)
+      await Promise.resolve().then(() => {
+        try {
+          if (course.html == null) {
+            return schedulePage.goto(course.url, {
+              waitUntil: 'networkidle2'
+            }).catch((e) => null)
+          }
+          else {
+            return schedulePage.reload({
+              waitUntil: 'networkidle2'
+            }).catch((e) => null)
+          }
         }
-        else {
-          await schedulePage.reload({
-            waitUntil: 'networkidle2'
-          }).catch((e) => e)
+        catch (e) {
+          console.log(e)
+          return null
         }
+      })
+        .then(test)
+      async function test() {
+        course.html = await schedulePage.evaluate(() => {
+          if (document.body) return document.body.outerHTML
+          else return undefined
+        })
+        if (course.html) status = await checkAndRegister(course);
+        await sleep(delayBetweenChecks);
       }
-      catch (e) {
-        console.log(e)
-        continue
-      }
-      await schedulePage.waitForNavigation()
-      course.html = await schedulePage.evaluate(() => {
-        if(document.body) return document.body.outerHTML
-        else return undefined
-      });
-      if(course.html) status = await checkAndRegister(course);
-      await sleep(delayBetweenChecks);
     } while (status == false);
     console.log("stopping registration for course " + course.sectionIndexNumber)
     await browser.close();
