@@ -15,8 +15,8 @@ USAGE
 */
 const sectionNumbers = ['02'];
 const sectionIndexNumbers = ['08539'];
-const NETID = 'nas256';
-const PASSWORD = 'Meowmix1234';
+const NETID = '';
+const PASSWORD = '';
 const delayBetweenChecks = 2000; //milliseconds
 const headless = false
 
