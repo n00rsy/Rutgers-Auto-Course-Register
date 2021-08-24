@@ -1,7 +1,5 @@
-
-
 const puppeteer = require('puppeteer');
-const $ = require('cheerio');
+const cheerio = require('cheerio');
 const colors = require('colors');
 
 /*
@@ -13,12 +11,12 @@ USAGE
 2. Input your information below
 3. Run with "node app.js"
 */
-const sectionNumbers = ['02'];
-const sectionIndexNumbers = ['08539'];
-const NETID = '';
-const PASSWORD = '';
+const sectionNumbers = ['90'];
+const sectionIndexNumbers = ['04294'];
+const NETID = 'nas256';
+const PASSWORD = 'EUiscool123!';
 const delayBetweenChecks = 2000; //milliseconds
-const headless = false
+const headless = true
 
 function Course(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
@@ -29,7 +27,7 @@ function Course(url, sectionNumber, sectionIndexNumber, i) {
 }
 
 function generateURL(sectionIndexNumber) {
-  return "https://sis.rutgers.edu/soc/#keyword?keyword=" + sectionIndexNumber + "&semester=12021&campus=NB&level=U";
+  return "https://sis.rutgers.edu/soc/#keyword?keyword=" + sectionIndexNumber + "&semester=92021&campus=NB&level=U";
 }
 
 function start() {
@@ -90,13 +88,14 @@ async function checkAndRegister(course) {
   if (course.html === null) {
     return false
   }
+  let $ = cheerio.load(course.html)
   let courseOpen = false
   //iterate through all open classes
-  $('.sectionopen', course.html).each(function () {
-    console.log("YEEEE", $(this).text());
+  $('.sectionopen').each(function () {
+    console.log("FRICKING GOT EM", $(this).text());
     if ($(this).text() == course.sectionNumber) {
       console.log(course.sectionIndexNumber + " is open. Attempting to register.  ".green);
-      //courseOpen = true
+      courseOpen = true
     }
   });
   if (courseOpen)
@@ -115,13 +114,15 @@ async function checkAndRegister(course) {
       }, {
         waitUntil: 'networkidle2'
       });
-
+      console.log("starting course registration sequence...")
       await registerPage.waitForNavigation();
       await registerPage.focus('#username');
       await registerPage.keyboard.type(NETID);
       await registerPage.focus('#password');
       await registerPage.keyboard.type(PASSWORD);
       await registerPage.click('#fm1 > fieldset > div:nth-child(6) > input.btn-submit');
+      
+      console.log("Attempting to log in...")
 
       //choose semester
       try {
@@ -138,10 +139,12 @@ async function checkAndRegister(course) {
       await registerPage.waitForSelector('#i1');
       await registerPage.focus('#i1');
       await registerPage.keyboard.type(course.sectionIndexNumber);
+      console.log("typed section index number...")
       await registerPage.waitForTimeout(300);
       await registerPage.waitForSelector('#submit');
       await registerPage.click('#submit');
-      await registerPage.waitForTimeout(15000);
+      console.log("submitted...")
+      await registerPage.waitForTimeout(60000);
       if (course.count > 10) {
         return false
       }
@@ -155,7 +158,7 @@ async function checkAndRegister(course) {
             if (errorText.includes("already registered")) return { text: errorText, registered: true }
             return { text: errorText, registered: false }
           }
-          return { text: "unknown error bruh", registered: true }
+          return { text: "idk something went wrong bruh", registered: true }
         })
         await registerPage.close();
         await browser.close();
