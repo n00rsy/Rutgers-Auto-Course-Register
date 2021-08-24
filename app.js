@@ -16,7 +16,7 @@ const sectionIndexNumbers = ['04294'];
 const NETID = 'nas256';
 const PASSWORD = 'EUiscool123!';
 const delayBetweenChecks = 2000; //milliseconds
-const headless = true
+const headless = false
 
 function Course(url, sectionNumber, sectionIndexNumber, i) {
   this.url = url;
@@ -110,20 +110,22 @@ async function checkAndRegister(course) {
       });
       //this sequence starts at webreg landing page and ends at registration.
       await registerPage.evaluate(() => {
-        document.querySelectorAll('a')[0].click();
+        document.querySelectorAll('a')[2].click();
       }, {
         waitUntil: 'networkidle2'
       });
+
       console.log("starting course registration sequence...")
+
       await registerPage.waitForNavigation();
       await registerPage.focus('#username');
       await registerPage.keyboard.type(NETID);
       await registerPage.focus('#password');
       await registerPage.keyboard.type(PASSWORD);
-      await registerPage.click('#fm1 > fieldset > div:nth-child(6) > input.btn-submit');
+      await registerPage.click('#fm1 > section > input.btn.btn-block.btn-submit');
       
       console.log("Attempting to log in...")
-
+      await registerPage.waitForTimeout(300);
       //choose semester
       try {
         course.count++;
@@ -139,11 +141,15 @@ async function checkAndRegister(course) {
       await registerPage.waitForSelector('#i1');
       await registerPage.focus('#i1');
       await registerPage.keyboard.type(course.sectionIndexNumber);
+
       console.log("typed section index number...")
+
       await registerPage.waitForTimeout(300);
       await registerPage.waitForSelector('#submit');
       await registerPage.click('#submit');
+
       console.log("submitted...")
+
       await registerPage.waitForTimeout(60000);
       if (course.count > 10) {
         return false
